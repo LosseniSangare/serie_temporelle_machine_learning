@@ -1,0 +1,10 @@
+---
+title: "File_rouge"
+author: "Eric, Losseni et Olivier "
+date: "2023-12-17"
+output: html_document
+---
+# Projet File Rouge
+
+Dans le cadre du le projet, nous 
+
