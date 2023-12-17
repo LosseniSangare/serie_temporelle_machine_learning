@@ -6,5 +6,77 @@ output: html_document
 ---
 # Projet File Rouge
 
-Dans le cadre du le projet, nous 
+Dans le cadre du  projet fil rouuge, nous avons décidé de travailler sur des séries temporelles.
+Pour ce fait nous utilisons des données de consommation d'électricité en Espagne.
+Pour commencer nous appliquerons de 
+
+```{r}
+rm(list = ls())
+```
+
+#importation de nos données
+```{r}
+data <- read.csv("D:/UTT/FIL_ROUGE_MACHINE_LEARNING/Data/data.csv")
+View(data)
+```
+
+```{r}
+str(data)
+```
+```{r}
+# Charger la bibliothèque tidyr
+library(tidyr)
+
+# Séparer la colonne "datetime_utc" en colonnes de date et d'heure
+data <- separate(data, datetime_utc, into = c("date", "heure"), sep = " ")
+
+# Séparer la colonne "heure" en colonnes de heure et fuseau
+data <- separate(data, heure, into = c("heure", "fuseau"), sep = "\\+")
+
+#suppression de la colonne fuseaux
+data<- subset(data, select = -fuseau)
+
+# Afficher les premières lignes du résultat
+head(data)
+
+```
+
+##Analyse des données
+
+```{r}
+summary(data)
+```
+```{r}
+#install.packages("dplyr")
+library(dplyr)
+library(lubridate) # pour la conversion du type de date et heure
+data$date = ymd(data$date)
+data$heure = hms(data$heure)
+```
+
+## ajout de nouvelle colonne années, mois, jour
+
+```{r}
+data$annee = year(data$date)
+data$mois = month(data$date)
+data$jour = month(data$date)
+```
+
+
+## Analyse des données
+
+```{r}
+str(data)
+```
+
+```{r}
+pairs(data)
+```
+
+
+```{r}
+cor(data$demanda,data$demanda_en_consumo)
+cor(data$gen_libre_co2,data$demanda_en_consumo)
+```
+
 
