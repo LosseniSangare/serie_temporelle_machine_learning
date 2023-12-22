@@ -24,6 +24,13 @@ View(data)
 str(data)
 ```
 ```{r}
+cor(data$demanda,data$demanda_en_consumo)
+cor(data$gen_libre_co2,data$demanda_en_consumo)
+```
+
+#transformation des données
+
+```{r}
 # Charger la bibliothèque tidyr
 library(tidyr)
 
@@ -36,22 +43,23 @@ data <- separate(data, heure, into = c("heure", "fuseau"), sep = "\\+")
 #suppression de la colonne fuseaux
 data<- subset(data, select = -fuseau)
 
+#renommage de l'entête
+colnames(data) = c("date","heure", "demande_predite","emission_co2","energie_consomme","prix")
+
 # Afficher les premières lignes du résultat
 head(data)
 
 ```
 
-##Analyse des données
 
-```{r}
-summary(data)
-```
 ```{r}
 #install.packages("dplyr")
 library(dplyr)
 library(lubridate) # pour la conversion du type de date et heure
 data$date = ymd(data$date)
 data$heure = hms(data$heure)
+#recuperation unique des heure sans les minute
+data$heure = hour(data$heure)
 ```
 
 ## ajout de nouvelle colonne années, mois, jour
@@ -59,24 +67,124 @@ data$heure = hms(data$heure)
 ```{r}
 data$annee = year(data$date)
 data$mois = month(data$date)
-data$jour = month(data$date)
+data$jour = day(data$date)
+
+#suppresion de la colonne date
+data = subset(data, select = -date)
 ```
 
+```{r}
+head(data)
+```
 
-## Analyse des données
+## verification des valeurs manquantes
+
+valeurs mamquante par colonne
+```{r}
+missing_values <- colSums(is.na(data))
+missing_values
+```
+Nombre total de valeurs manquante
+```{r}
+total_missing_values <- sum(missing_values)
+total_missing_values
+```
+Comme on l'avait constaté, il n'y a aucune valeur maquante dans ce jeu de données
+
+
+# Analyse descriptive
 
 ```{r}
 str(data)
 ```
 
 ```{r}
-pairs(data)
+summary(data)
 ```
 
 
 ```{r}
-cor(data$demanda,data$demanda_en_consumo)
-cor(data$gen_libre_co2,data$demanda_en_consumo)
+#boxplot(data$energie_consomme,data$demande_predite, data$emission_co2, main = "Boîte à moustaches des variable")
 ```
+
+
+
+```{r}
+pairs(data)
+``` 
+On remarque visiblement que  consommation d'energie est forement corrélé à la demande prédite et 
+
+```{r}
+cor(data)
+```
+```{r}
+cor(data$demande_predite,data$energie_consomme)
+cor(data$emission_co2,data$energie_consomme)
+
+```
+on vois bien que la consommation d'energy est fortement corrélé positivement à 98,64 % à la prévision de demande et moyennement corrélé positivement à la production de c02 soit 50,39%
+
+
+## Séparation des donné en entraînement et test
+
+pour ce jeu de donnée, nous avons décidé d'utiliser que les données des deux dernières années comme nos données de test et celles des années précédente comme nos données de validation
+```{r}
+test_start = as.Date(2021)
+train_data = data %>% filter(annee < test_start)
+test_data = data %>% filter(annee >= test_start)
+```
+
+## Entrainement de nos model avec la regression simple
+
+```{r}
+r1 = lm(data_train$energie_consomme ~ data_train$demande_predite, data = train_data) 
+summary(r1)
+```
+l'erreur standard est de 710,6 sur 61465 dégrée de liberté. 
+R² nous montre que 97,16% des données d'entrainement sont expliquées par le modèle.
+
+```{r}
+ggplot(train_data)+aes(x=demande_predite,y=energie_consomme)+geom_point()+ geom_smooth(method = "lm",lwd=3) + theme_minimal()
+```
+## prediction sur les données de test
+```{r}
+pred = predict(r1, newdata = test_data)
+```
+
+```{r}
+# Créer un dataframe avec les prédictions et les valeurs réelles
+results <- data.frame(Reel = test_data$energie_consomme, Prediction = pred)
+
+# Afficher les premières lignes du dataframe
+head(results)
+
+```
+
+
+##Erreur quadratique moyenne (RMSE) :
+
+elle mesure l'écart quadratique moyen entre les valeurs prédites et les valeurs réelles.
+
+```{r}
+rmse <- sqrt(mean((test_data$energie_consomme - pred)^2))
+taille= length(test_data$energie_consomme)
+(taille-rmse)/taille
+```
+```{r}
+mae <- mean(abs(test_data$energie_consomme - pred))
+(taille-mae)/taille
+```
+#Coefficient de détermination (R²)
+
+```{r}
+ssr <- sum((pred - mean(test_data$energie_consomme))^2)
+sst <- sum((test_data$energie_consomme - mean(test_data$energie_consomme))^2)
+r_squared <- ssr / sst
+r_squared
+```
+
+Un coefficient de détermination (R²) de 0.99 est très élevé et suggère que le modèle de régression linéaire  ajusté explique très bien la variance de la variable dépendante (energie_consomme) à partir de la variable indépendante (demande_predite). En d'autres termes, environ 99% de la variabilité dans la variable dépendante est expliquée par le modèle.
+
+NB: Un R² élevé est généralement un indicateur positif, car il signifie que le modèle est capable de capturer la variation dans les données et de fournir des prédictions précises. Cependant, il est également important d'être conscient des limitations possibles du R², notamment son insensibilité à des problèmes tels que les erreurs de spécification du modèle.
 
 
