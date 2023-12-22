@@ -1,4 +1,4 @@
-## Prédictions de consommation électrique à partir de séries temporelles
+## Prédiction de consommation électrique à partir de séries temporelles
 
 Ce projet vise à utiliser les techniques du Machine Learning pour prédire la consommation électrique sur une année à partir des observations des années précédentes. Il s'appuie sur des données horaires[^first] sur les années 2014 à 2022 mises à disposition par l'opérateur espagnol Red Eléctrica[^second].
 
@@ -14,7 +14,7 @@ Choix du projet (à compléter) :
 + Valeur à prédire : consommation totale réelle (consommation spécifique des particuliers écartée à ce stade)
 + Méthodologie : en cours d'élaboration (cf. étape 1)
 + Développement logiciel en R
-+ Données d'entraînement et de validation : période du 1er janvier 2014 au 31 avril 2020
++ Données d'entraînement et de validation : période du 1er janvier 2014 au 30 avril 2020
 + Données de test : période du 1er janvier 2021 au 30 avril 2022.
 
 [^first]: Electricity demand tracking : https://demanda.ree.es/visiona/home
