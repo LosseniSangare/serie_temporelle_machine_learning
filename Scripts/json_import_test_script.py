@@ -8,9 +8,9 @@ REE's public API documented at https://www.ree.es/en/apidatos
 import csv, json
 
 # Path to JSON file to be imported
-json_file_path = "../data/json_input/REE_data_2022-05.json"
+json_file_path = "../Data/json_input/REE_data_2022-04-30.json"
 # Path to save data into CSV file
-csv_file_path = "../data/csv_output/REE_data_2022-05.csv"
+csv_file_path = "../Data/csv_output/REE_data_2022-04-30.csv"
 
 try:
     # Read JSON data from file
