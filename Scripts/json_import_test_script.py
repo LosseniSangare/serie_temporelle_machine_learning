@@ -1,4 +1,4 @@
-# REE_data_import v1.0
+# json_import_test_script v1.0
 
 '''
 This a test version importing data from a file downloaded manually with HTTP GET using
