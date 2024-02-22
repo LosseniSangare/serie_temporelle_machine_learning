@@ -4,11 +4,11 @@ Ce projet vise à utiliser les techniques du Machine Learning pour prédire la c
 
 Démarche du projet :
 1) Choix méthodologiques adaptés au traitement de séries temporelles
-2) Acquisition des données (récurrente en utilisant l'API publique mise à disposition par Red Eléctrica) 
+2) Acquisition des données (mise à jour via l'API publique[^third] de Red Eléctrica) 
 3) Exploration des données
 4) Nettoyage et transformation des données
 5) Modélisation (cf. § Choix du projet)
-6) Développement et hébergement d'une Web App.[^third] pour la fourniture de prédictions de consommation électrique
+6) Développement et hébergement d'une Web App.[^fourth] pour la fourniture de prédictions de consommation électrique
 7) Observations et conclusion.
 
 Choix du projet :
@@ -18,6 +18,7 @@ Choix du projet :
 + Données d'entraînement et de validation : période du 1er janvier 2014 au 30 avril 2020
 + Données de test : période du 1er janvier 2021 au 31 décembre 2023.
 
-[^first]: Electricity demand tracking : https://demanda.ree.es/visiona/home
+[^first]: Electricity demand tracking | Red Eléctrica : https://demanda.ree.es/visiona/home
 [^second]: Red Eléctrica : https://www.ree.es/en
-[^third]: Fil Rouge ELO : https://fil-rouge.cerfs21.fr
+[^third]: REData API | Red Eléctrica : https://www.ree.es/en/apidatos
+[^fourth]: Fil Rouge | ELO : https://fil-rouge.cerfs21.fr
