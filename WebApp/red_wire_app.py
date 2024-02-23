@@ -1,4 +1,4 @@
-# red_wire_app v0.1
+# red_wire_app v0.2
 #   Draft & untested initial version
 
 
@@ -27,9 +27,9 @@ file_path = 'data/REE_data.csv'
 data_df = pd.read_csv(app_path+file_path, encoding = "ISO-8859-1")
 
 
-#############################
-# Declare dataset variables #
-#############################
+############################
+# Set user input variables #
+############################
 
 # Create lists that will be used to manage Dash inputs
 # 1) List of model inputs
@@ -42,9 +42,9 @@ input_notes =   ["choisissez la date de début", "choisissez la date de fin"]
 
 # The code below manages the user interface using Dash tabs and callbacks
 
-########################################
-# Declare Dash variables and functions #
-########################################
+####################################
+# Set Dash variables and functions #
+####################################
 
 # Function to determine greeting text on user connection
 def get_greeting_text(name):
@@ -87,14 +87,14 @@ logo_and_title = dbc.Row(
         ),
         dbc.Col(
             [
-                html.H1("Red Wire App.", style={"color": "orange"}),
-                html.H4("Prévisions de consommation électrique en Espaggne", style={"color": "blue"}),
+                html.H1("Red Wire App.", style={"color": "red"}),
+                html.H4("Prévisions de consommation électrique en Espagne", style={"color": "blue"}),
             ],
             width=8,
             className="text-center",
         ),
     ],
-    # Use flexible display and make zero gap between columns
+    # Use flexible display and set zero gap between columns
     className="d-flex g-0 align-items-center mb-4",
 )
 
@@ -124,7 +124,7 @@ buttons = [
     dbc.Button("Modifier les paramètres", id="param-button"),
 ]
 
-# Input form for model parameters, other than those selecting an area and its default parameter values
+# Web formular for user input
 input_form = []
 for i in range(0, len(input_ids)):
     input_form.append(
@@ -152,6 +152,11 @@ def get_next_tab(active_tab):
     else:
         return f"tab-{active_tab_number + 1}"
 
+
+#####################
+# Declare Dash tabs #
+#####################
+
 # Dash parameters to control displaying tabs and home button
 HIDE_TABS = True
 HIDE_HOME_BUTTON = False
@@ -159,13 +164,9 @@ HIDE_HOME_BUTTON = False
 # Debug flag to control console output
 PRINT_to_LOG = False
 
-
-#####################
-# Declare Dash tabs #
-#####################
-
+# Define Dash tabs
 tabs = dbc.Tabs([
-    # 1st (Home) tab linked to button_to_next_tab callback
+    # 1st 'Home' tab linked to callback 'button_to_next_tab'
     dbc.Tab(
         [
             dbc.Row(
@@ -210,7 +211,7 @@ tabs = dbc.Tabs([
         label="Accueil"
     ),
 
-    # 2nd (Connection) tab linked to button_to_next_tab and enter_id callbacks
+    # 2nd 'Connection' tab linked to callbacks 'button_to_next_tab' and 'enter_id'
     dbc.Tab(
         [
             dbc.Row(
@@ -246,7 +247,7 @@ tabs = dbc.Tabs([
         label="Connexion"
     ),
 
-    # 3rd (Welcome) tab linked to button_to_next_tab and enter_id callbacks
+    # 3rd 'Welcome' tab also linked to callbacks 'button_to_next_tab' and 'enter_id'
     dbc.Tab(
         [
             dbc.Row(
@@ -277,7 +278,7 @@ tabs = dbc.Tabs([
         label="Bienvenue"
     ),
 
-    # 4th (Parameters) tab linked to several callbacks
+    # 4th 'Parameters' tab linked to several callbacks
     # Select an area and display/modify default parameter values
     dbc.Tab(
         [
@@ -288,7 +289,7 @@ tabs = dbc.Tabs([
                         style={"color": "blue"},
                         className="mb-4"),
                 ]
-                # Input form displaying model parameters and their default values for the selected area
+                # Prefined formular for user input
                 + input_form
                 # Button to get model prediction
                 + [buttons[3]],
@@ -298,8 +299,7 @@ tabs = dbc.Tabs([
         label="Paramètres"
     ),
 
-    # 5th (Result) tab
-    # Display model prediction for the selected area based on selected parameter values
+    # 5th 'Result' tab displaying model prediction for user defined period
     dbc.Tab(
         [
             dbc.Row(
@@ -341,9 +341,9 @@ tabs = dbc.Tabs([
 ], id="tabs", className="mb-4")
 
 
-######################
-# Application layout #
-######################
+###################################
+# Application layout for all tabs #
+###################################
 
 if HIDE_TABS:
     tabs.className += " d-none"
@@ -352,7 +352,7 @@ if HIDE_HOME_BUTTON:
     home_button.className += " d-none"
 
 app.layout = dbc.Container([
-    # Full screen = 1 row
+    # 1 single row => full screen display
     dbc.Row(
         [
             # Left half of screen = 1st Col showing app header and tabs
@@ -393,11 +393,11 @@ app.layout = dbc.Container([
 ])
 
 
-##########################
-# Declare Dash CallBacks #
-##########################
+#########################
+# Define Dash CallBacks #
+#########################
 
-# Manage Home button
+# Callback to manage Home button
 @app.callback(
     Output(component_id="tabs", component_property="active_tab"),
 
@@ -407,7 +407,7 @@ def home_button(n_clicks):
     return "tab-0"
 
 
-# Manage Start and (application) Launch buttons on Home and Welcome tabs
+# Callback to manage Start and (application) Launch buttons on Home and Welcome tabs
 @app.callback(
     Output(component_id="tabs", component_property="active_tab"),
 
@@ -421,13 +421,14 @@ def button_to_next_tab(active_tab, *args):
     return get_next_tab(active_tab)
 
 
-# Manage input for user identification
+# Callback to manage input for user identification
 @app.callback(
     Output(component_id="welcome-box1", component_property="children"),
     Output(component_id="welcome-box2", component_property="children"),
     Output(component_id="tabs", component_property="active_tab"),
     Output(component_id="name-box", component_property="invalid"),
 
+    # Collect user identification
     State(component_id="name-box", component_property="value"),
     State(component_id="tabs", component_property="active_tab"),
 
@@ -441,7 +442,7 @@ def enter_id_callback(name, active_tab, n_clicks):
 
     return text1, text2, get_next_tab(active_tab), False
 
-# Gather all parameters, launch model prediction and trigger Result tab
+# Main callback to collect model input parameters, launch model prediction and trigger Result tab
 @app.callback(
     Output(component_id="prediction-card", component_property="children"),
     Output(component_id="prediction-graph", component_property="figure"),
@@ -449,7 +450,7 @@ def enter_id_callback(name, active_tab, n_clicks):
     Output(component_id="alert-0", component_property="is_open"),
     Output(component_id="alert-1", component_property="is_open"),
 
-    # Start and end dates
+    # Collect start and end dates
     inputs=[State(component_id=input_ids[0], component_property="value"),
     State(component_id=input_ids[1], component_property="value"),
 
@@ -514,6 +515,10 @@ def get_result_callback(start_date, end_date, input_values, active_tab, n_clicks
 
     return prediction_text, prediction_figure, get_next_tab(active_tab), False, False, False
 
+# End of code managing the user interface using Dash tabs and callbacks
+
+
+# Hook for wsgi
 server = app.server
 if __name__ == '__main__':
     app.run_server(debug=False)
