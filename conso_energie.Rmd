@@ -1,0 +1,484 @@
+---
+title: "conso_enrgie"
+author: "Losseni SANGARE"
+date: "2024-01-06"
+output: html_document
+---
+```{r}
+rm(list = ls())
+```
+
+
+```{r}
+# Charger la bibliothèque tidyr
+library(tidyr)
+
+#install.packages("plotly")
+library(plotly)
+library(forecast)
+library(TSstudio)
+```
+
+
+
+```{r}
+#install.packages("htmltools")
+install.packages("htmltools", lib="C:/Users/LOSSENI SANGARE/AppData/Local/R/win-library/4.3")
+library(htmltools)
+
+```
+**************************************************************************************************************************
+
+
+
+**************************************************************************************************************************
+
+
+## importation de nos données : 
+
+```{r}
+data_xts <- read.csv("D:/UTT/FIL_ROUGE_MACHINE_LEARNING/Data/data.csv")
+```
+
+## Transformation en Série Temporelle avec xts
+
+
+```{r}
+library(xts)
+```
+
+
+
+
+```{r}
+
+# Séparer la colonne "datetime_utc" en colonnes de date et d'heure
+data_xts <- separate(data_xts, datetime_utc, into = c("date", "fuseau"), sep = "\\+")
+
+#suppression de la colonne fuseaux
+data_xts<- subset(data_xts, select = -fuseau)
+
+data_xts$date <- as.POSIXct(data_xts$date, format="%Y-%m-%d %H:%M:%S", tz="UTC")
+options(xts_check_TZ = FALSE)# desactivation du fuseau horaire
+#renommage de l'entête
+colnames(data_xts) = c("date", "conso_totale","emission_co2","conso_particulier","prix")
+data_xts = subset(data_xts, select = - conso_particulier)
+
+# Afficher les premières lignes du résultat
+head(data_xts)
+
+```
+```{r}
+print(sum(is.na(data_xts)))
+```
+
+
+### Créer un objet xts:
+
+```{r}
+library(xts)
+conso_xts <- xts(x = data_xts$conso_totale, order.by = data_xts$date)
+head(conso_xts)
+
+```
+
+
+## Étape 1: Visualisation de base
+```{r}
+library(xts)
+plot(conso_xts, main="Consommation Totale", ylab="Conso Totale", type="l")
+
+```
+
+cette première image montre notre série temporelle initiale, qui représente la consommation totale au fil du temps. nous pouvons voir des fluctuations significatives ainsi que des pics répétitifs, qui pourraient indiquer une saisonnalité ou des périodes régulières de consommation élevée.
+
+
+## Étape 2: Tendance et saisonnalité
+
+Après avoir visualisé nos données, nous voudrons peut-être examiner la tendance (mouvement à long terme) et la saisonnalité (patterns qui se répètent à intervalles réguliers).
+
+Pourquoi ? Identifier la tendance et la saisonnalité vous aide à comprendre la nature sous-jacente de vos données, ce qui est crucial pour la prévision et l'analyse.
+
+Comment ? Une manière simple de démarrer est d'utiliser une moyenne mobile pour lisser la série et voir la tendance. Pour la saisonnalité, nous pouvons visualiser des données sur une période plus courte.
+
+```{r}
+# Moyenne mobile simple sur 7 jours pour lisser la série et voir la tendance
+conso_ma <- rollmean(conso_xts, 24, align="center", fill=NA)
+lines(conso_ma, col="blue")
+
+```
+ Il est difficile de discerner une tendance claire en raison des fluctuations naturelles des données. La superposition bleue ne semble pas être une moyenne mobile lissée, car elle suit de près la série temporelle originale.
+
+
+
+
+## Série temporelle stationnaire
+
+Pour de nombreuses analyses et modèles de prévision, nos données doivent être stationnaires, ce qui signifie que leurs propriétés statistiques (moyenne, variance) ne changent pas dans le temps.
+
+**Pourquoi ?** La plupart des modèles de prévision de séries temporelles supposent que la série est stationnaire. Si la série n'est pas stationnaire, elle doit être transformée
+
+**Comment ?** Une façon de rendre une série temporelle stationnaire est d'utiliser la différenciation, où nous soustrayons la valeur précédente de chaque valeur de la série.
+
+Notre série ici est stationnaire sinon on la renderait stationnaire comme ci-dessous
+
+```{r}
+conso_diff <- diff(conso_xts)
+plot(conso_diff, main="Différences Premières de la Consommation Totale", ylab="Différence de Conso Totale", type='l')
+
+```
+
+La troisième image montre la différence première de la consommation totale. La différenciation est une technique utilisée pour rendre une série temporelle stationnaire. Dans cette image, les valeurs semblent centrer autour de zéro avec une variance constante, ce qui est un bon indicateur de stationnarité.
+
+
+## Étape 4: Test de stationnarité
+
+Avant de procéder à des analyses plus avancées ou à la modélisation, nous devons confirmer statistiquement que notre série est stationnaire.
+
+**Pourquoi ?** Un test de stationnarité peut confirmer quantitativement si les transformations que nous avons appliquées (comme la différenciation) ont rendu la série temporelle stationnaire.
+
+**Comment ?** Le test Augmented Dickey-Fuller (ADF) est un test commun pour la stationnarité.
+
+```{r}
+library(tseries)
+conso_xts_no_na <- na.omit(conso_xts)
+adf.test(conso_xts_no_na, alternative = "stationary")
+```
+
+
+
+```{r}
+
+conso_diff_no_na <- na.omit(conso_diff)
+adf.test(conso_diff_no_na, alternative = "stationary")
+
+```
+Le test Augmented Dickey-Fuller (ADF) a renvoyé une statistique très négative (-48.577) et une p-value de 0.01, indiquant que la série différenciée est stationnaire. Cela signifie que la série temporelle, après différenciation, ne présente pas de tendance ou de motif saisonnier systématique qui se déplace dans le temps.
+
+
+```{r}
+library(forcats)
+# Fréquence pour une saisonnalité quotidienne avec des données horaires
+conso_ts <- ts(conso_xts, frequency=24)
+
+# Appliquer la décomposition classique
+conso_decomposed <- ts_decompose(conso_ts)
+
+# Visualiser les composantes décomposées
+conso_decomposed
+
+```
+
+
+ici on voi qu'on a de la saisonalité en plus le model est stationnaire du coup on opte pour les model SARMA et ARMA.
+
+d'abord separons nos données.
+
+
+```{r}
+library(forcats)
+# Fréquence pour une saisonnalité quotidienne avec des données horaires
+conso_ts <- ts(conso_xts, frequency=24)
+
+# Appliquer la décomposition classique
+conso_decomposed <- ts_decompose(conso_ts, type = "multiplicative")
+
+# Visualiser les composantes décomposées
+conso_decomposed
+```
+
+
+
+### passage d'une serie multiplicatif à une série multiplicatif
+
+```{r}
+conso_xts <- log(conso_xts)
+```
+
+```{r}
+# Fréquence pour une saisonnalité quotidienne avec des données horaires
+conso_ts <- ts(conso_xts, frequency=24)
+
+# Appliquer la décomposition classique
+conso_decomposed <- ts_decompose(conso_ts)
+
+# Visualiser les composantes décomposées
+conso_decomposed
+```
+
+les erreurs varient maintenant entre -0.02 et 0.02
+
+
+
+
+
+
+```{r}
+index(conso_xts) <- as.POSIXct(index(conso_xts))
+```
+
+
+
+### Séparer les données en ensembles d'entraînement et de test 
+
+```{r}
+# Identifier l'index où l'année 2021 commence
+start_test_index <- which(format(index(conso_xts), "%Y") == "2021")[1]
+
+# Séparer les données en ensembles d'entraînement et de test
+train_set <- conso_xts[1:(start_test_index - 1)]
+test_set <- conso_xts[start_test_index:length(conso_xts)]
+
+```
+
+
+
+
+
+## Identification des ordres p et q 
+
+```{r}
+
+# Conversion de train_set en un objet ts avec une fréquence de 24
+train_ts <- ts(coredata(train_set), frequency=24)
+
+# Maintenant, essayez de nouveau de tracer ACF et PACF
+Acf(train_ts, lwd =2.5)
+
+```
+
+```{r}
+Pacf(train_ts,lwd =2.5)
+```
+### application d'une d'ifférentiation
+
+```{r}
+# Différenciation simple de train_set
+diff_train_ts <- diff(train_ts, differences=1)
+diff_train_ts <- diff(train_ts, lag=24)
+
+# Conversion de la série différenciée en objet ts avec une fréquence de 24 (pour des données horaires)
+diff_train_ts <- ts(diff_train_ts, frequency=24)
+
+```
+
+
+
+
+```{r}
+# Tracé de ACF et PACF sur la série différenciée
+Acf(diff_train_ts, main="ACF de conso_xts différenciée", lwd=2.5)
+```
+Le graphique ACF montre une décroissance exponentielle initiale et devient insignifiant après environ le premier lag, ce qui suggère généralement un processus AR.
+Cependant, le pic significatif à lag 24 indique une saisonnalité qui n'a pas été complètement retirée par la différenciation saisonnière.
+
+
+```{r}
+Pacf(diff_train_ts, main="PACF de conso_xts différenciée", lwd=2.5) 
+```
+Le graphique PACF montre un seul pic significatif au premier lag puis coupe brusquement, ce qui est typique d'un processus MA(1).
+
+## Choix des Ordres pour ARIMA
+
+Déja l'ACF et l'PACF tendent vers 0 a partir d'audre 1
+
+p (AR): Sur la base du PACF, on peut commencer avec un p=1, car le premier lag est significatif et les suivants ne le sont pas
+pour la differentiation d on prendra d = 0 car la série est stationnaire.
+q (MA): Le premier lag significatif dans l'ACF suggère un q=1 pour la composante non saisonnière.
+
+
+## Ajustement d'un modèle ARMA  sur l'ensemble d'entraînement
+
+
+Pour un modèle ARMA, nous allons commencer avec des ordres simples comme p=2 et q=2.
+
+```{r}
+# Ajuster un modèle ARMA avec p=1 et q=1
+fit_arma <- Arima(train_ts, order=c(0,0,1), include.constant = TRUE)
+
+```
+
+
+```{r}
+# Résumé du modèle ARMA
+summary(fit_arma)
+
+
+```
+## sur les données d'entraînement 
+
+Coefficients :
+
+Les coefficients AR et MA sont significatifs, avec des erreurs standard faibles par rapport à la taille des coefficients, ce qui suggère qu'ils captent bien la dynamique de la série temporelle
+
+Log Likelihood :
+
+La log-vraisemblance est négative et assez élevée en valeur absolue, ce qui est normal pour les séries temporelles. Elle est utilisée pour comparer des modèles .
+
+
+Le RMSE( racine carrée de la moyenne des carrés des erreurs) de 761.0436 et le MAE(moyenne des valeurs absolues des erreurs) de 545.5633 sont plus élevés que ceux du modèle SARMA, ce qui suggère que le modèle ARMA ne prédit pas aussi précisément que le modèle SARMA.
+
+Le MAPE(la moyenne des valeurs absolues des erreurs en pourcentage) de 1.925854% indique que l'erreur de prédiction moyenne en pourcentage est légèrement inférieure à 2%. Bien que ce ne soit pas extrêmement élevé, il est plus grand que celui du modèle SARMA.
+Le MASE de 0.3052825, bien que moins de 1, suggère que le modèle fait mieux que le modèle naïf, mais il est supérieur à celui du modèle SARMA
+
+ACF1 :
+
+L'ACF1 est très proche de zéro, ce qui est positif car cela indique que les résidus ne présentent pas d'autocorrélation significative.
+
+
+## trasformation de test_set en times series
+```{r}
+test_ts <- ts(test_set, frequency=24)
+```
+
+
+```{r}
+head(conso_xts)
+```
+
+
+## Prédictions avec le modèle ARMA
+
+```{r}
+pred_arma <- forecast(fit_arma, h=length(test_ts))
+# Vérifier que les prédictions ne contiennent pas uniquement des NA
+print(summary(pred_arma))
+```
+
+
+
+
+
+## Prediction ARMA
+```{r}
+# Prédiction sur l'ensemble d'entraînement
+train_pred_arma <- exp(fitted(fit_arma))
+
+# Prédiction sur l'ensemble de test
+test_pred_arma <- exp(forecast(fit_arma, h=length(test_set))$mean)
+
+# Calculer les métriques d'erreur sur les ensembles d'entraînement et de test sur l'échelle originale
+accuracy(train_pred_arma, exp(train_set))
+accuracy(test_pred_arma, exp(test_set))
+```
+
+
+
+
+
+## Modèle SARMA
+
+Pour le modèle SARMA, nous allons incorporer des termes saisonniers pour capturer la saisonnalité observée dans les données. Nous allons commencer avec P=1 et Q=1 pour la partie saisonnière et p=2 et q=2 pour la partie non saisonnière. Nous n'incluons pas de différenciation (d=0) car les données sont déjà stationnaires, et D=1 pour la différenciation saisonnière puisque vous avez trouvé la série stationnaire après différenciation saisonnière.
+
+```{r}
+# Ajuster un modèle SARMA avec p=2, q=2, P=1, D=1, Q=1
+fit_sarma <- Arima(train_ts, order=c(1,0,1), seasonal=c(1,1,1), include.constant = TRUE)
+
+# Résumé du modèle SARMA
+summary(fit_sarma)
+
+```
+Le RMSE est de 357.1897, ce qui est inférieur à celui du modèle ARMA, indiquant une meilleure précision globale sur les donnée d'entrainement.
+
+
+Le MAE est de 248.758, ce qui est également un bon signe d'une prédiction précise.
+
+Le MAPE de 0.9178811% est très faible, ce qui suggère que le modèle a une bonne précision en pourcentage.
+Le MASE inférieur à 1 indique que le modèle est meilleur que le modèle naïf de référence.
+L'ACF1 est proche de zéro, ce qui indique que les résidus (erreurs) du modèle sont bien distribués aléatoirement et qu'il n'y a pas d'autocorrélation résiduelle non expliquée, ce qui est une bonne caractéristique.
+Sur la base de ces mesures, le modèle SARMA semble acceptable. Il présente des erreurs de prévision plus faibles que le modèle ARMA et montre que les termes saisonniers ont aidé à améliorer la précision du modèle. La prochaine étape serait de le tester sur un ensemble de données de test pour évaluer sa performance de prédiction hors échantillon.
+
+
+
+
+## Prédictions avec le modèle SARMA pour évaluer la qualité des prédictions
+
+vu que l'ajustement du model a été fait sur des donnée à l'échelle logarithmique, il faut Inverser la transformation pour les prédictions (en utilisant exp() dans ce cas).
+Ensuite calculer les métriques d'erreur sur l'échelle originale pour évaluer la performance du modèle.
+
+```{r}
+# Prédiction sur l'ensemble d'entraînement
+train_pred <- exp(fitted(fit_sarma))
+
+# Prédiction sur l'ensemble de test
+test_pred <- exp(forecast(fit_sarma, h=length(test_set))$mean)
+
+# Calculer les métriques d'erreur sur les ensembles d'entraînement et de test sur l'échelle originale
+accuracy(train_pred, exp(train_set))
+accuracy(test_pred, exp(test_set))
+
+```
+
+les valeurs de RMSE et MAE sont généralement plus élevées sur l'ensemble de test en raison de la nature des données jamais vues par le modèle. L'écart ici ne semble pas extrêmement grand, ce qui suggère que votre modèle pourrait être raisonnablement bien généralisé, bien que des tests supplémentaires soient nécessaires pour le confirmer.
+
+```{r}
+print(sum(is.na(train_pred)))
+```
+
+
+
+## visualisation
+```{r}
+
+
+```
+
+
+## AUTO-ARMA
+```{r}
+# Ajustement du modèle Auto-ARMA sur les données d'entraînement transformées en log
+fit_auto_arma <- auto.arima(train_ts, d=0, D=0)
+```
+
+
+```{r}
+summary(fit_auto_arma)
+```
+
+
+```{r}
+# Prédiction sur l'ensemble d'entraînement et reconversion à l'échelle originale
+train_pred_auto_arma <- exp(fitted(fit_auto_arma))
+
+# Prédiction sur l'ensemble de test et reconversion à l'échelle originale
+test_pred_auto_arma <- exp(forecast(fit_auto_arma, h=length(test_ts))$mean)
+```
+
+
+```{r}
+# Calcul des métriques de précision sur l'ensemble d'entraînement et de test
+accuracy_auto_arma_train <- accuracy(train_pred_auto_arma, exp(train_set))
+accuracy_auto_arma_test <- accuracy(test_pred_auto_arma, exp(test_set))
+
+# Afficher les métriques de précision
+print(accuracy_auto_arma_train)
+print(accuracy_auto_arma_test)
+
+```
+modèle Auto-ARMA semble bien performer, avec des erreurs relativement faibles tant sur les données d'entraînement que de test, sans signe évident de surapprentissage sur la base de ces métriques.
+
+
+## AUTO-SARIMA
+```{r}
+# Ajustement du modèle Auto-SARMA sur les données d'entraînement transformées en log
+fit_auto_sarma <- auto.arima(train_ts,D=0, d=0, seasonal=TRUE)
+
+# Prédiction sur l'ensemble d'entraînement et reconversion à l'échelle originale
+train_pred_auto_sarma <- exp(fitted(fit_auto_sarma))
+
+# Prédiction sur l'ensemble de test et reconversion à l'échelle originale
+test_pred_auto_sarma <- exp(forecast(fit_auto_sarma, h=length(test_ts))$mean)
+```
+
+
+```{r}
+# Calcul des métriques de précision sur l'ensemble d'entraînement et de test
+accuracy_auto_sarma_train <- accuracy(train_pred_auto_sarma, exp(train_set))
+accuracy_auto_sarma_test <- accuracy(test_pred_auto_sarma, exp(test_set))
+
+# Afficher les métriques de précision
+print(accuracy_auto_sarma_train)
+print(accuracy_auto_sarma_test)
+
+```
+

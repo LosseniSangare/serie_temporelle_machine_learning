@@ -23,10 +23,6 @@ View(data)
 ```{r}
 str(data)
 ```
-```{r}
-cor(data$demanda,data$demanda_en_consumo)
-cor(data$gen_libre_co2,data$demanda_en_consumo)
-```
 
 #transformation des données
 
@@ -44,10 +40,40 @@ data <- separate(data, heure, into = c("heure", "fuseau"), sep = "\\+")
 data<- subset(data, select = -fuseau)
 
 #renommage de l'entête
-colnames(data) = c("date","heure", "demande_predite","emission_co2","energie_consomme","prix")
+colnames(data) = c("date","heure", "conso_totale","emission_co2","conso_particulier","prix")
 
 # Afficher les premières lignes du résultat
 head(data)
+
+```
+
+
+```{r}
+data_new=subset(data, select = -conso_particulier)
+head(data_new)
+```
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+# Assurez-vous que la colonne date est au format POSIXct
+data_new$date <- as.POSIXct(data_new$date)
+
+# Ajouter des colonnes pour le mois et l'année
+data_new$mois <- format(data_new$date, "%m")
+data_new$annee <- format(data_new$date, "%Y")
+
+# Filtrer les données pour janvier 2014
+data_january_2014 <- data_new[data_new$annee == "2014" & data_new$mois == "01", ]
+
+# Créer un graphique de la série temporelle
+ggplot(data_january_2014, aes(x = date, y = conso_totale)) +
+  geom_smooth() +
+  labs(title = "Série temporelle de conso_totale - Janvier 2014",
+       x = "Date",
+       y = "conso_totale")
 
 ```
 
@@ -59,7 +85,7 @@ library(lubridate) # pour la conversion du type de date et heure
 data$date = ymd(data$date)
 data$heure = hms(data$heure)
 #recuperation unique des heure sans les minute
-data$heure = hour(data$heure)
+#data$heure = hour(data$heure)
 ```
 
 ## ajout de nouvelle colonne années, mois, jour
@@ -95,11 +121,12 @@ Comme on l'avait constaté, il n'y a aucune valeur maquante dans ce jeu de donn�
 # Analyse descriptive
 
 ```{r}
-str(data)
+data_new = subset(data, select = - conso_particulier)
+str(data_new)
 ```
 
 ```{r}
-summary(data)
+summary(data_new)
 ```
 
 
@@ -110,18 +137,14 @@ summary(data)
 
 
 ```{r}
-pairs(data)
+pairs(data_new)
 ``` 
 On remarque visiblement que  consommation d'energie est forement corrélé à la demande prédite et 
 
 ```{r}
-cor(data)
+cor(data_new)
 ```
-```{r}
-cor(data$demande_predite,data$energie_consomme)
-cor(data$emission_co2,data$energie_consomme)
 
-```
 on vois bien que la consommation d'energy est fortement corrélé positivement à 98,64 % à la prévision de demande et moyennement corrélé positivement à la production de c02 soit 50,39%
 
 
@@ -130,14 +153,109 @@ on vois bien que la consommation d'energy est fortement corrélé positivement �
 pour ce jeu de donnée, nous avons décidé d'utiliser que les données des deux dernières années comme nos données de test et celles des années précédente comme nos données de validation
 ```{r}
 test_start = as.Date(2021)
-train_data = data %>% filter(annee < test_start)
-test_data = data %>% filter(annee >= test_start)
+train_data = data_new %>% filter(annee < test_start)
+test_data = data_new %>% filter(annee >= test_start)
 ```
+
+
+
+
+```{r}
+str(data_new)
+```
+
+```{r}
+data_new$date <- as.POSIXct(paste(data_new$annee, data_new$mois, data_new$jour, data_new$heure, sep = "-"))
+head(data_new)
+
+summary(data_new)
+
+data_new$date <- as.POSIXct(paste(data_new$annee, data_new$mois, data_new$jour, data_new$heure, sep = "-"), format="%Y-%m-%d %H")
+
+head(data_new)
+
+
+```
+
+
+
+```{r}
+library(ggplot2)
+# Créer un objet de type Date
+#data$date <- as.Date(paste(data$annee, data$mois, data$jour, data$heure, sep = "-"))
+#data$date2 <- paste(2014, 02, 01, data$heure, sep = "-")
+#subset_data <- data[data$date >= as.POSIXct("2014-01-01"),]
+start = as.Date(2014)
+subset_data = data %>% filter(annee == start)
+
+# Créer un graphique de la série temporelle
+ggplot(subset_data, aes(x = date, y = energie_consomme)) +
+  geom_line() +
+  labs(title = "Série temporelle de energie_consomme",
+       x = "Date",
+       y = "energie_consomme")
+
+```
+
+
+
+```{r}
+daily_avg <- data %>%
+  group_by(date) %>%
+  summarise(avg_energie_consomme = mean(energie_consomme))
+
+head(daily_avg)
+data$daily_avg
+```
+
+
+
+```{r}
+test_start2 = as.Date(2014)
+plot_data = data %>% filter(annee == test_start2)
+```
+
+
+
+```{r}
+# Créer un objet de type Date
+data$date <- as.Date(paste(2014, data$mois, data$jour, sep = "-"))
+
+# Créer un graphique de la série temporelle
+ggplot(data, aes(x = date, y = energie_consomme)) +
+  geom_line() +
+  labs(title = "Série temporelle de energie_consomme",
+       x = "Date",
+       y = "energie_consomme")
+
+```
+
+```{r}
+daily_avg <- data %>%
+  group_by(date) %>%
+  summarise(avg_energie_consomme = mean(energie_consomme))
+
+head(daily_avg)
+data$daily_avg
+```
+```{r}
+# Créer un objet de type Date
+data$date <- as.Date(paste(2014, data$mois, data$jour, sep = "-"))
+
+# Créer un graphique de la série temporelle
+ggplot(data, aes(x = date, y = daily_avg)) +
+  geom_line() +
+  labs(title = "Série temporelle de energie_consomme",
+       x = "Date",
+       y = "energie_consomme")
+
+```
+
 
 ## Entrainement de nos model avec la regression simple
 
 ```{r}
-r1 = lm(data_train$energie_consomme ~ data_train$demande_predite, data = train_data) 
+r1 = lm(train_data$conso_totale ~ mois + jour, data = train_data) 
 summary(r1)
 ```
 l'erreur standard est de 710,6 sur 61465 dégrée de liberté. 
@@ -153,7 +271,7 @@ pred = predict(r1, newdata = test_data)
 
 ```{r}
 # Créer un dataframe avec les prédictions et les valeurs réelles
-results <- data.frame(Reel = test_data$energie_consomme, Prediction = pred)
+results <- data.frame(Reel = test_data$conso_totale, Prediction = pred)
 
 # Afficher les premières lignes du dataframe
 head(results)
@@ -166,25 +284,29 @@ head(results)
 elle mesure l'écart quadratique moyen entre les valeurs prédites et les valeurs réelles.
 
 ```{r}
-rmse <- sqrt(mean((test_data$energie_consomme - pred)^2))
-taille= length(test_data$energie_consomme)
+rmse <- sqrt(mean((test_data$conso_totale - pred)^2))
+taille= length(test_data$conso_totale)
+rmse
 (taille-rmse)/taille
 ```
+
+
 ```{r}
-mae <- mean(abs(test_data$energie_consomme - pred))
+mae <- mean(abs(test_data$conso_totale - pred))
 (taille-mae)/taille
 ```
 #Coefficient de détermination (R²)
 
 ```{r}
-ssr <- sum((pred - mean(test_data$energie_consomme))^2)
-sst <- sum((test_data$energie_consomme - mean(test_data$energie_consomme))^2)
+ssr <- sum((pred - mean(test_data$conso_totale))^2)
+sst <- sum((test_data$conso_totale - mean(test_data$conso_totale))^2)
 r_squared <- ssr / sst
 r_squared
 ```
 
-Un coefficient de détermination (R²) de 0.99 est très élevé et suggère que le modèle de régression linéaire  ajusté explique très bien la variance de la variable dépendante (energie_consomme) à partir de la variable indépendante (demande_predite). En d'autres termes, environ 99% de la variabilité dans la variable dépendante est expliquée par le modèle.
-
 NB: Un R² élevé est généralement un indicateur positif, car il signifie que le modèle est capable de capturer la variation dans les données et de fournir des prédictions précises. Cependant, il est également important d'être conscient des limitations possibles du R², notamment son insensibilité à des problèmes tels que les erreurs de spécification du modèle.
 
+```{r}
+
+```
 
