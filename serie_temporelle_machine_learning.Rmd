@@ -1,7 +1,0 @@
----
-title: "electricite"
-author: "ELO : Eric, Losseni et Olivier"
-date: "2023-12-17"
-output: html_document
----
-# Projet 
