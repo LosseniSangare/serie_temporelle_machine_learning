@@ -1,4 +1,6 @@
-# monthly_data_import_w.API v1.0
+# monthly_data_import_w.API v1.1
+#   Updates from v1.0:
+#   - Fix %M:%S to %H:%M in month_start definition
 
 '''
 This script uses the REE's public API to download and save electricity demand for a user specified year and month.
@@ -90,7 +92,7 @@ month = input("Month as a 2-digit number : ")
 start_date  = f"{year}-{month}-01T00:00"
 
 # Compute and set end date and time (23h59 on last day of month) for 'start_date' above
-month_start = datetime.strptime(start_date, "%Y-%m-%dT%M:%S")
+month_start = datetime.strptime(start_date, "%Y-%m-%dT%H:%M")
 month_end = month_start.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
 end_date = month_end.strftime("%Y-%m-%d")+"T23:59"
 
