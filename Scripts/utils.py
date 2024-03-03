@@ -1,13 +1,39 @@
-# utils v1.0
+# utils v1.1
 # Common functions for processing REE data
+#   Updates from v1.0:
+#   - Add moment function
+#   - Move URL constant from monthly_data_import_w.API_batch to here
+#   - Remove time zone and thousandths of seconds in UTC converted datetime
 
 
 # Import librairies
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
 from dateutil import tz
 import pandas as pd
 import pytz
 import requests
+
+# Define constants
+# Define the URL for the targeted data (electricity demand in real time)
+URL = 'https://apidatos.ree.es/es/datos/demanda/demanda-tiempo-real?'
+
+
+# Define of a function to convert user defined half_day to a datetime object
+def moment(day, half_day):
+    '''
+    Input: day and hour as strings
+    Output: datetime object
+    '''
+    if half_day == "AM":
+        hour = 0
+        minute = 0
+    elif half_day == "PM":
+        hour = 23
+        minute = 59
+    if day == "today":
+        return dt.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
+    elif day == "yesterday":
+        return dt.now().replace(hour=hour, minute=minute, second=0, microsecond=0) - timedelta(days=1)
 
 
 # Define a function building an API request based on user defined start and end dates
@@ -29,6 +55,12 @@ def API_request(url, start, end):
         # "Accept": "application/json",
     }
 
+    # Display start and end date and time to be used by the API request
+    print("\nStart date for API request :", start)
+    print("End date for API request   :", end)
+    print("Please wait while data is being downloaded...")
+
+    # Send GET request and collect returned data into 'response'
     response = requests.get(url=url, params=request_params, headers=headers)
 
     # Display response code and url returned by the API
@@ -52,7 +84,7 @@ def datetime_to_utc_str(date):
     '''
     date_time = dt.strptime(date, '%Y-%m-%dT%H:%M:%S.%f%z')
     datetime_utc = date_time.astimezone(pytz.UTC)
-    datetime_utc = datetime_utc.strftime("%Y-%m-%d %H:%M:%S%z")
+    datetime_utc = datetime_utc.strftime("%Y-%m-%d %H:%M:%S")
     return datetime_utc
 
 
@@ -73,7 +105,7 @@ def aggreg_to_utc_duration(df, duration):
     # Change string to/from datetime object to convert the timestamp to UTC
     df['datetime'] = pd.to_datetime(df['datetime'], format="%Y-%m-%dT%H:%M:%S.%f%z")
     df['datetime'] = df['datetime'].apply(lambda x: x.tz_convert(tz.tzutc()))
-    df['datetime'] = df['datetime'].dt.strftime("%Y-%m-%d %H:%M:%S.%f%z")
+    df['datetime'] = df['datetime'].dt.strftime("%Y-%m-%d %H:%M:%S")
     # Truncate the timestamp to the specified duration and store it as a new column 'datatime_UTC'
     df['datetime_UTC']=df['datetime'].str[:durations[duration]]
 
